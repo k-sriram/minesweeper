@@ -327,6 +327,29 @@ mod tests {
     }
 
     #[test]
+    fn game_new() {
+        Game::new(5, 4, 10);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_size() {
+        Game::new(0, 5, 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_mines_1() {
+        Game::new(3, 3, 9);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_mines_2() {
+        Game::new(3, 3, 0);
+    }
+
+    #[test]
     fn default_randomizer() {
         let randomizer = DefaultRandomizer {};
         let mines = randomizer.generate_board(5, 4, 10, 0, 0);
