@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::{
     cmp::{max, min},
     fmt::Display,
@@ -212,7 +213,31 @@ impl Randomizer for DefaultRandomizer {
         firstx: u32,
         firsty: u32,
     ) -> Vec<Vec<bool>> {
-        todo!()
+        let mut mines = vec![vec![false; width as usize]; height as usize];
+        let mut mines_left = num_mines;
+        let area = width * height;
+        let spaces = area - num_mines - 1;
+        mines[firsty as usize][firstx as usize] = true;
+
+        let mut rng = rand::thread_rng();
+        while mines_left > 0 {
+            let r = rng.gen_range(0..spaces + mines_left);
+            let mut i = 0;
+            for j in 0..area {
+                let (x, y) = (j % width, j / width);
+                if mines[y as usize][x as usize] {
+                    continue;
+                }
+                if i == r {
+                    mines[y as usize][x as usize] = true;
+                    mines_left -= 1;
+                    break;
+                }
+                i += 1;
+            }
+        }
+        mines[firsty as usize][firstx as usize] = false;
+        mines
     }
 }
 
@@ -299,5 +324,27 @@ mod tests {
 
         game.clear();
         assert_eq!(game.get_state(), GameState::New);
+    }
+
+    #[test]
+    fn default_randomizer() {
+        let randomizer = DefaultRandomizer {};
+        let mines = randomizer.generate_board(5, 4, 10, 0, 0);
+        assert_eq!(
+            mines
+                .into_iter()
+                .map(|v| v.into_iter().filter(|&x| x).count())
+                .sum::<usize>(),
+            10
+        );
+    }
+
+    #[test]
+    fn randomizer_does_not_get_first() {
+        let randomizer = DefaultRandomizer {};
+        for i in 0..5 {
+            let mines = randomizer.generate_board(5, 5, 24, i, i);
+            assert_eq!(mines[i as usize][i as usize], false);
+        }
     }
 }
