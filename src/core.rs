@@ -132,7 +132,9 @@ impl<R: Randomizer> Game<R> {
     }
 
     pub fn get_board(&self) -> Vec<Vec<Cell>> {
-        todo!()
+        (0..self.height)
+            .map(|y| (0..self.width).map(|x| self.get_cell(x, y)).collect())
+            .collect()
     }
 
     pub fn open(&mut self, x: u32, y: u32) -> Result<OpenInfo, OpenErr> {
@@ -289,6 +291,11 @@ mod tests {
 
         assert_eq!(game.get_state(), GameState::Won);
         assert_eq!(game.open(1, 0), Err(OpenErr::GameOver));
+
+        assert_eq!(
+            game.get_board(),
+            vec![vec![Cell::Mine, Cell::Clear(1), Cell::Clear(0)]]
+        );
 
         game.clear();
         assert_eq!(game.get_state(), GameState::New);
