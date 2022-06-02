@@ -4,17 +4,6 @@ use std::{
     fmt::Display,
 };
 
-pub trait Randomizer {
-    fn generate_board(
-        &self,
-        width: u32,
-        height: u32,
-        num_mines: u32,
-        firstx: u32,
-        firsty: u32,
-    ) -> Vec<Vec<bool>>;
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameState {
     New,
@@ -56,26 +45,29 @@ impl Display for OpenErr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Game<R: Randomizer> {
+pub struct Game {
     state: GameState,
     width: u32,
     height: u32,
     num_mines: u32,
-    randomizer: R,
+    randomizer: fn(u32, u32, u32, u32, u32) -> Vec<Vec<bool>>,
     clear_remaining: u32,
     mines: Vec<Vec<bool>>,
     opened: Vec<Vec<bool>>,
     neighbours: Vec<Vec<u8>>,
 }
 
-impl Game<DefaultRandomizer> {
+impl Game {
     pub fn new(width: u32, height: u32, num_mines: u32) -> Self {
-        Game::<DefaultRandomizer>::new_with(height, width, num_mines, DefaultRandomizer {})
+        Self::new_with(height, width, num_mines, default_randomizer)
     }
-}
 
-impl<R: Randomizer> Game<R> {
-    pub fn new_with(width: u32, height: u32, num_mines: u32, randomizer: R) -> Self {
+    pub fn new_with(
+        width: u32,
+        height: u32,
+        num_mines: u32,
+        randomizer: fn(u32, u32, u32, u32, u32) -> Vec<Vec<bool>>,
+    ) -> Self {
         if width < 1 || height < 1 {
             panic!("Invalid size");
         }
@@ -109,9 +101,8 @@ impl<R: Randomizer> Game<R> {
         self.clear();
     }
 
-    pub fn reset_randomizer(&mut self, randomizer: R) {
+    pub fn reset_randomizer(&mut self, randomizer: fn(u32, u32, u32, u32, u32) -> Vec<Vec<bool>>) {
         self.randomizer = randomizer;
-        self.clear();
     }
 
     pub fn get_state(&self) -> GameState {
@@ -178,9 +169,7 @@ impl<R: Randomizer> Game<R> {
     // Utility functions
 
     fn generate_board(&mut self, firstx: u32, firsty: u32) {
-        self.mines =
-            self.randomizer
-                .generate_board(self.width, self.height, self.num_mines, firstx, firsty);
+        self.mines = (self.randomizer)(self.width, self.height, self.num_mines, firstx, firsty);
         self.opened = vec![vec![false; self.width as usize]; self.height as usize];
         self.calculate_neighbours();
         self.clear_remaining = self.width * self.height - self.num_mines;
@@ -202,73 +191,63 @@ impl<R: Randomizer> Game<R> {
     }
 }
 
-pub struct DefaultRandomizer {}
+fn default_randomizer(
+    width: u32,
+    height: u32,
+    num_mines: u32,
+    firstx: u32,
+    firsty: u32,
+) -> Vec<Vec<bool>> {
+    let mut mines = vec![vec![false; width as usize]; height as usize];
+    let mut mines_left = num_mines;
+    let area = width * height;
+    let spaces = area - num_mines - 1;
+    mines[firsty as usize][firstx as usize] = true;
 
-impl Randomizer for DefaultRandomizer {
-    fn generate_board(
-        &self,
-        width: u32,
-        height: u32,
-        num_mines: u32,
-        firstx: u32,
-        firsty: u32,
-    ) -> Vec<Vec<bool>> {
-        let mut mines = vec![vec![false; width as usize]; height as usize];
-        let mut mines_left = num_mines;
-        let area = width * height;
-        let spaces = area - num_mines - 1;
-        mines[firsty as usize][firstx as usize] = true;
-
-        let mut rng = rand::thread_rng();
-        while mines_left > 0 {
-            let r = rng.gen_range(0..spaces + mines_left);
-            let mut i = 0;
-            for j in 0..area {
-                let (x, y) = (j % width, j / width);
-                if mines[y as usize][x as usize] {
-                    continue;
-                }
-                if i == r {
-                    mines[y as usize][x as usize] = true;
-                    mines_left -= 1;
-                    break;
-                }
-                i += 1;
+    let mut rng = rand::thread_rng();
+    while mines_left > 0 {
+        let r = rng.gen_range(0..spaces + mines_left);
+        let mut i = 0;
+        for j in 0..area {
+            let (x, y) = (j % width, j / width);
+            if mines[y as usize][x as usize] {
+                continue;
             }
+            if i == r {
+                mines[y as usize][x as usize] = true;
+                mines_left -= 1;
+                break;
+            }
+            i += 1;
         }
-        mines[firsty as usize][firstx as usize] = false;
-        mines
     }
+    mines[firsty as usize][firstx as usize] = false;
+    mines
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    struct DummyRandomizer {}
-
-    impl Randomizer for DummyRandomizer {
-        fn generate_board(
-            &self,
-            width: u32,
-            height: u32,
-            num_mines: u32,
-            _firstx: u32,
-            _firsty: u32,
-        ) -> Vec<Vec<bool>> {
-            let mut mines = vec![vec![false; width as usize]; height as usize];
-            for i in 0..num_mines {
-                let x = i % width;
-                let y = i / width;
-                mines[y as usize][x as usize] = true;
-            }
-            mines
+    fn dummy_randomizer(
+        width: u32,
+        height: u32,
+        num_mines: u32,
+        _firstx: u32,
+        _firsty: u32,
+    ) -> Vec<Vec<bool>> {
+        let mut mines = vec![vec![false; width as usize]; height as usize];
+        for i in 0..num_mines {
+            let x = i % width;
+            let y = i / width;
+            mines[y as usize][x as usize] = true;
         }
+        mines
     }
 
     #[test]
     fn run() {
-        let mut game = Game::new_with(5, 4, 10, DummyRandomizer {});
+        let mut game = Game::new_with(5, 4, 10, dummy_randomizer);
         assert_eq!(game.get_state(), GameState::New);
         assert_eq!(
             game.open(0, 2),
@@ -350,9 +329,8 @@ mod tests {
     }
 
     #[test]
-    fn default_randomizer() {
-        let randomizer = DefaultRandomizer {};
-        let mines = randomizer.generate_board(5, 4, 10, 0, 0);
+    fn default_randomizer_basic() {
+        let mines = default_randomizer(5, 4, 10, 0, 0);
         assert_eq!(
             mines
                 .into_iter()
@@ -364,9 +342,8 @@ mod tests {
 
     #[test]
     fn randomizer_does_not_get_first() {
-        let randomizer = DefaultRandomizer {};
         for i in 0..5 {
-            let mines = randomizer.generate_board(5, 5, 24, i, i);
+            let mines = default_randomizer(5, 5, 24, i, i);
             assert_eq!(mines[i as usize][i as usize], false);
         }
     }
