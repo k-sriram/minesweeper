@@ -113,7 +113,10 @@ impl Game {
         self.clear();
     }
 
-    pub fn reset_randomizer(&mut self, randomizer: fn(usize, usize, usize, usize, usize) -> Vec<Vec<bool>>) {
+    pub fn reset_randomizer(
+        &mut self,
+        randomizer: fn(usize, usize, usize, usize, usize) -> Vec<Vec<bool>>,
+    ) {
         self.randomizer = randomizer;
     }
 
@@ -361,5 +364,17 @@ mod tests {
             let mines = default_randomizer(5, 5, 24, i, i);
             assert_eq!(mines[i][i], false);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn randomizer_zero_size_board() {
+        default_randomizer(0, 0, 0, 0, 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn randomizer_too_many_mines() {
+        default_randomizer(5, 5, 25, 0, 0);
     }
 }
