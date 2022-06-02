@@ -260,6 +260,22 @@ mod tests {
         mines
     }
 
+    fn dummy_randomizer_2(
+        width: usize,
+        height: usize,
+        num_mines: usize,
+        _firstx: usize,
+        _firsty: usize,
+    ) -> Vec<Vec<bool>> {
+        let mut mines = vec![vec![false; width]; height];
+        for i in 0..num_mines {
+            let x = width - (i % width) - 1;
+            let y = height - (i / width) - 1;
+            mines[y][x] = true;
+        }
+        mines
+    }
+
     #[test]
     fn run() {
         let mut game = GameRules::new_with(5, 4, 10, dummy_randomizer);
@@ -321,6 +337,30 @@ mod tests {
 
         game.clear();
         assert_eq!(game.get_state(), GameState::New);
+    }
+
+    #[test]
+    fn reset_randomizer() {
+        let mut game = GameRules::new_with(2, 1, 1, dummy_randomizer);
+        assert_eq!(
+            game.open(0, 0),
+            Ok(OpenInfo {
+                state: GameState::Lost,
+                cell: Cell::Mine
+            })
+        );
+
+        game.reset_randomizer(dummy_randomizer_2);
+
+        assert_eq!(game.state, GameState::Lost);
+        game.clear();
+        assert_eq!(
+            game.open(0, 0),
+            Ok(OpenInfo {
+                state: GameState::Won,
+                cell: Cell::Clear(1)
+            })
+        );
     }
 
     #[test]
