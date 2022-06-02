@@ -45,7 +45,7 @@ impl Display for OpenErr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Game {
+pub struct GameRules {
     state: GameState,
     width: usize,
     height: usize,
@@ -57,7 +57,7 @@ pub struct Game {
     neighbours: Vec<Vec<u8>>,
 }
 
-impl Game {
+impl GameRules {
     pub fn new(width: usize, height: usize, num_mines: usize) -> Self {
         Self::new_with(height, width, num_mines, default_randomizer)
     }
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn run() {
-        let mut game = Game::new_with(5, 4, 10, dummy_randomizer);
+        let mut game = GameRules::new_with(5, 4, 10, dummy_randomizer);
         assert_eq!(game.height(), 4);
         assert_eq!(game.width(), 5);
         assert_eq!(game.num_mines(), 10);
@@ -325,25 +325,25 @@ mod tests {
 
     #[test]
     fn game_new() {
-        Game::new(5, 4, 10);
+        GameRules::new(5, 4, 10);
     }
 
     #[test]
     #[should_panic]
     fn invalid_size() {
-        Game::new(0, 5, 0);
+        GameRules::new(0, 5, 0);
     }
 
     #[test]
     #[should_panic]
     fn invalid_mines_1() {
-        Game::new(3, 3, 9);
+        GameRules::new(3, 3, 9);
     }
 
     #[test]
     #[should_panic]
     fn invalid_mines_2() {
-        Game::new(3, 3, 0);
+        GameRules::new(3, 3, 0);
     }
 
     #[test]
