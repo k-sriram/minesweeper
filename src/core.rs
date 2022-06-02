@@ -87,6 +87,18 @@ impl Game {
         }
     }
 
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn num_mines(&self) -> u32 {
+        self.num_mines
+    }
+
     pub fn clear(&mut self) {
         self.state = GameState::New;
         self.mines = Vec::new();
@@ -248,9 +260,9 @@ mod tests {
     #[test]
     fn run() {
         let mut game = Game::new_with(5, 4, 10, dummy_randomizer);
-        assert_eq!(game.height(), &4);
-        assert_eq!(game.width(), &5);
-        assert_eq!(game.num_mines(), &10);
+        assert_eq!(game.height(), 4);
+        assert_eq!(game.width(), 5);
+        assert_eq!(game.num_mines(), 10);
         assert_eq!(game.get_state(), GameState::New);
         assert_eq!(
             game.open(0, 2),
