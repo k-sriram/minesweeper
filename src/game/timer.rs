@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Timer {
     start: Option<Instant>,
     excess: Duration,
@@ -48,6 +49,22 @@ impl Timer {
 
     pub fn is_running(&self) -> bool {
         self.start.is_some()
+    }
+
+    pub fn add_time(&mut self, duration: Duration) {
+        self.excess += duration;
+    }
+}
+
+impl PartialOrd for Timer {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Timer {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.time().cmp(&other.time())
     }
 }
 
