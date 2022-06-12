@@ -9,7 +9,7 @@ pub struct Engine {
 impl Engine {
     pub fn new() -> Self {
         Engine {
-            game: game::Game::new(3, 3, 1),
+            game: game::Game::default(),
             ui: ui::UI::new(),
         }
     }

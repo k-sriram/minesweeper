@@ -31,31 +31,29 @@ pub struct Game {
     rules: GameRules,
     timer: Timer,
     board: Vec<Vec<Cell>>,
-    height: usize,
-    width: usize,
-    mines: usize,
+    settings: Settings,
     mines_remaining: usize,
 }
 
 impl Game {
-    pub fn new(width: usize, height: usize, mines: usize) -> Self {
+    pub fn new(settings: Settings) -> Self {
+        let (width, height) = (settings.difficulty.width(), settings.difficulty.height());
+        let mines = settings.difficulty.mines();
         let rules = GameRules::new(width, height, mines);
         Game {
             rules,
             timer: Timer::new(),
             board: vec![vec![Cell::Hidden; width]; height],
-            height,
-            width,
-            mines,
+            settings,
             mines_remaining: mines,
         }
     }
 
     pub fn reset(&mut self) {
         self.timer.reset();
-        self.board = vec![vec![Cell::Hidden; self.width]; self.height];
+        self.board = vec![vec![Cell::Hidden; self.width()]; self.height()];
         self.rules.clear();
-        self.mines_remaining = self.mines;
+        self.mines_remaining = self.mines();
     }
 
     // TODO: Return a Result
@@ -64,7 +62,7 @@ impl Game {
             self.timer.start();
         }
 
-        if x >= self.width || y >= self.height {
+        if x >= self.width() || y >= self.height() {
             panic!("Out of bounds");
         }
 
@@ -128,15 +126,15 @@ impl Game {
     }
 
     pub fn width(&self) -> usize {
-        self.width
+        self.settings.difficulty.width()
     }
 
     pub fn height(&self) -> usize {
-        self.height
+        self.settings.difficulty.height()
     }
 
     pub fn mines(&self) -> usize {
-        self.mines
+        self.settings.difficulty.mines()
     }
 
     pub fn mines_remaining(&self) -> usize {
@@ -159,6 +157,87 @@ impl Game {
             _ => {
                 panic!("query_board can only be called after game is over");
             }
+        }
+    }
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Game::new(Settings::default())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Difficulty {
+    Easy,
+    Medium,
+    Hard,
+    Custom(CustomBoard),
+}
+
+impl Difficulty {
+    pub fn width(&self) -> usize {
+        match self {
+            Difficulty::Easy => 9,
+            Difficulty::Medium => 16,
+            Difficulty::Hard => 30,
+            Difficulty::Custom(board) => board.width,
+        }
+    }
+
+    pub fn height(&self) -> usize {
+        match self {
+            Difficulty::Easy => 9,
+            Difficulty::Medium => 16,
+            Difficulty::Hard => 16,
+            Difficulty::Custom(board) => board.height,
+        }
+    }
+
+    pub fn mines(&self) -> usize {
+        match self {
+            Difficulty::Easy => 10,
+            Difficulty::Medium => 40,
+            Difficulty::Hard => 99,
+            Difficulty::Custom(board) => board.mines,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CustomBoard {
+    width: usize,
+    height: usize,
+    mines: usize,
+}
+
+impl CustomBoard {
+    pub fn new(width: usize, height: usize, mines: usize) -> Self {
+        if width < 1 || height < 1 {
+            panic!("Width and height must be at least 1")
+        } else if mines < 1 {
+            panic!("Mines must be at least 1")
+        } else if mines >= width * height {
+            panic!("Mines must be less than the number of cells")
+        } else {
+            CustomBoard {
+                width,
+                height,
+                mines,
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    pub difficulty: Difficulty,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            difficulty: Difficulty::Easy,
         }
     }
 }
