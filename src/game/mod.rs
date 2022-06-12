@@ -27,6 +27,15 @@ impl From<rules::Cell> for Cell {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Action {
+    Quit,
+    ChangeSettings(Settings),
+    Reset,
+    Open(usize, usize),
+    Flag(usize, usize),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Game {
     rules: GameRules,
     timer: Timer,
@@ -49,59 +58,90 @@ impl Game {
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn action(&mut self, action: Action) -> Result<(), &'static str> {
+        match action {
+            Action::ChangeSettings(settings) => self.change_settings(settings),
+            Action::Reset => self.reset(),
+            Action::Open(x, y) => self.open(x, y),
+            Action::Flag(x, y) => self.flag(x, y),
+            Action::Quit => Err("Quit should be processed by the engine."),
+        }
+    }
+
+    fn change_settings(&mut self, settings: Settings) -> Result<(), &'static str> {
+        let should_reset = self.settings.difficulty != settings.difficulty;
+        self.settings = settings;
+        if should_reset {
+            self.reset();
+        }
+        Ok(())
+    }
+
+    fn reset(&mut self) -> Result<(), &'static str> {
         self.timer.reset();
         self.board = vec![vec![Cell::Hidden; self.width()]; self.height()];
         self.rules.clear();
         self.mines_remaining = self.mines();
+        Ok(())
     }
 
-    // TODO: Return a Result
-    pub fn open(&mut self, x: usize, y: usize) {
+    fn open(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
+        if !self.valid_coord(x, y) {
+            return Err("invalid coordinate");
+        }
         if self.state() == New {
             self.timer.start();
         }
 
-        if x >= self.width() || y >= self.height() {
-            panic!("Out of bounds");
-        }
-
         if self.state() == Lost || self.state() == Won {
-            panic!("Game is over");
+            return Err("Game is over");
         }
 
-        if self.board[y][x] == Cell::Flag {
-            return;
-        }
-
-        match self.rules.open(x, y) {
-            Err(rules::OpenErr::OutOfBounds) => panic!("Out of bounds"),
-            Err(_) => {}
-            Ok(info) => match info {
-                rules::OpenInfo {
-                    state: Playing,
-                    cell,
-                } => {
-                    self.board[y][x] = cell.into();
-                }
-                rules::OpenInfo { state: _, cell } => {
-                    if cell == rules::Cell::Mine {
-                        self.board[y][x] = Cell::TrippedMine;
-                    }
-                    self.query_board();
-                    self.timer.stop();
-                }
-            },
+        match self.board[y][x] {
+            Cell::Flag => return Err("Cell if flagged"),
+            Cell::Open(_) => return Err("Cell is already open"),
+            Cell::Hidden => {
+                match  self.rules.open(x, y) {
+                    Err(_) => panic!("Unreachable: fail conditions already checked"),
+                    Ok(info) => match info {
+                        rules::OpenInfo {
+                            state: Playing,
+                            cell,
+                        } => {
+                            self.board[y][x] = cell.into();
+                        }
+                        rules::OpenInfo { state: _, cell } => {
+                            if cell == rules::Cell::Mine {
+                                self.board[y][x] = Cell::TrippedMine;
+                            }
+                            self.query_board();
+                            self.timer.stop();
+                            
+                        }
+                    },
+                };
+                Ok(())
+            }
+            _ => panic!("Unreachable: false conditions only possible after game over"),
         }
     }
 
-    pub fn flag(&mut self, x: usize, y: usize) {
-        if self.board[y][x] == Cell::Hidden {
-            self.board[y][x] = Cell::Flag;
-            self.mines_remaining -= 1;
-        } else if self.board[y][x] == Cell::Flag {
-            self.board[y][x] = Cell::Hidden;
-            self.mines_remaining += 1;
+    fn flag(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
+        if !self.valid_coord(x, y) {
+            return Err("invalid coordinate");
+        }
+        match self.board[y][x] {
+            Cell::Hidden => {
+                self.board[y][x] = Cell::Flag;
+                self.mines_remaining -= 1;
+                Ok(())
+            }
+            Cell::Flag => {
+                self.board[y][x] = Cell::Hidden;
+                self.mines_remaining += 1;
+                Ok(())
+            }
+            _ => Err("Cell not hidden"),
         }
     }
 
@@ -158,6 +198,10 @@ impl Game {
                 panic!("query_board can only be called after game is over");
             }
         }
+    }
+
+    fn valid_coord(&self, x: usize, y: usize) -> bool {
+        x < self.width() && y < self.height()
     }
 }
 

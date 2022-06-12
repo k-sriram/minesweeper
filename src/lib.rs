@@ -1,32 +1,31 @@
 mod game;
 mod ui;
 
+pub use game::{Action, Game};
+
+pub trait UI {
+    fn get_action(&mut self, game: &Game) -> Action;
+}
+
 pub struct Engine {
     game: game::Game,
-    ui: ui::UI,
+    ui: Box<dyn UI>,
 }
 
 impl Engine {
     pub fn new() -> Self {
         Engine {
             game: game::Game::default(),
-            ui: ui::UI::new(),
+            ui: Box::new(ui::CLUI::new()),
         }
     }
 
     pub fn run(&mut self) {
         loop {
-            let input = self.ui.get_input(&self.game);
-            match input {
-                ui::Input::Quit => break,
-                ui::Input::Reset => self.game.reset(),
-                ui::Input::Flag(x, y) => {
-                    self.game.flag(x, y);
-                }
-                ui::Input::Open(x, y) => {
-                    self.game.open(x, y);
-                }
-            }
+            match self.ui.get_action(&self.game) {
+                Action::Quit => break,
+                action => self.game.action(action).unwrap(),
+            };
         }
     }
 }
