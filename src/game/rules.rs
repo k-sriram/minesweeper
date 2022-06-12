@@ -19,6 +19,15 @@ pub enum Cell {
     Clear(u8),
 }
 
+impl Cell {
+    pub fn is_clear(&self) -> bool {
+        match self {
+            Cell::Clear(_) => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenInfo {
     pub state: GameState,
