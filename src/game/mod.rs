@@ -72,6 +72,12 @@ impl Game {
         let should_reset = self.settings.difficulty != settings.difficulty;
         self.settings = settings;
         if should_reset {
+            let (width, height, num_mines) = (
+                self.settings.difficulty.width(),
+                self.settings.difficulty.height(),
+                self.settings.difficulty.mines(),
+            );
+            self.rules.reset(width, height, num_mines);
             self.reset()?;
         }
         Ok(())
@@ -101,8 +107,10 @@ impl Game {
             Cell::Flag => return Err("Cell if flagged"),
             Cell::Open(_) => return Err("Cell is already open"),
             Cell::Hidden => {
-                match  self.rules.open(x, y) {
-                    Err(_) => panic!("Unreachable: fail conditions already checked"),
+                match self.rules.open(x, y) {
+                    Err(err) => {
+                        panic!("Unreachable: fail conditions already checked got {:?}", err)
+                    }
                     Ok(info) => match info {
                         rules::OpenInfo {
                             state: Playing,
@@ -116,7 +124,6 @@ impl Game {
                             }
                             self.query_board();
                             self.timer.stop();
-                            
                         }
                     },
                 };
@@ -147,6 +154,10 @@ impl Game {
 
     pub fn state(&self) -> GameState {
         self.rules.get_state()
+    }
+
+    pub fn settings(&self) -> &Settings {
+        &self.settings
     }
 
     pub fn time(&self) -> f64 {

@@ -1,7 +1,7 @@
 mod game;
 mod ui;
 
-pub use game::{Action, Game};
+pub use game::{Action, Cell, CustomBoard, Difficulty, Game, Settings};
 pub use ui::{CLUI, TUI};
 
 pub trait UI {
