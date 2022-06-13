@@ -72,7 +72,7 @@ impl Game {
         let should_reset = self.settings.difficulty != settings.difficulty;
         self.settings = settings;
         if should_reset {
-            self.reset();
+            self.reset()?;
         }
         Ok(())
     }

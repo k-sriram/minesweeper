@@ -2,6 +2,7 @@ mod game;
 mod ui;
 
 pub use game::{Action, Game};
+pub use ui::{CLUI, TUI};
 
 pub trait UI {
     fn get_action(&mut self, game: &Game) -> Action;
@@ -13,10 +14,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new() -> Self {
+    pub fn new(frontend: Box<dyn UI>) -> Self {
         Engine {
             game: game::Game::default(),
-            ui: Box::new(ui::CLUI::new()),
+            ui: frontend,
         }
     }
 
