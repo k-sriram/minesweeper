@@ -191,55 +191,52 @@ impl TUI {
     }
 
     fn draw_board<'a>(&self, game: &Game) -> Paragraph<'a> {
+        const CLOSED_BG: Color = Color::Gray;
+        const OPENED_BG: Color = Color::DarkGray;
+        const CLOSED_BG_NEIGHBOR: Color = Color::LightYellow;
+        const OPENED_BG_NEIGHBOR: Color = Color::Yellow;
+        const CLOSED_BG_CURSOR: Color = Color::White;
+        const OPENED_BG_CURSOR: Color = Color::White;
         let board = game.board();
         let mut lines = Vec::new();
-        for row in board.iter() {
+        for (y, row) in board.iter().enumerate() {
             let mut cells = Vec::new();
-            for cell in row.iter() {
-                let (text, style) = match cell {
-                    Cell::Hidden => (" ", Style::default().bg(Color::Gray)),
-                    Cell::Flag => ("►", Style::default().fg(Color::LightGreen).bg(Color::Gray)),
-                    Cell::Mine => ("*", Style::default().fg(Color::Green).bg(Color::DarkGray)),
-                    Cell::FalseFlag => (
-                        "►",
-                        Style::default()
-                            .fg(Color::Red)
-                            .bg(Color::Gray)
-                            .add_modifier(Modifier::RAPID_BLINK),
-                    ),
-                    Cell::TrippedMine => (
-                        "*",
-                        Style::default()
-                            .fg(Color::Red)
-                            .bg(Color::DarkGray)
-                            .add_modifier(Modifier::RAPID_BLINK),
-                    ),
-                    Cell::Open(0) => (" ", Style::default().bg(Color::DarkGray)),
-                    Cell::Open(1) => ("1", Style::default().fg(Color::Blue).bg(Color::DarkGray)),
-                    Cell::Open(2) => (
-                        "2",
-                        Style::default().fg(Color::LightGreen).bg(Color::DarkGray),
-                    ),
-                    Cell::Open(3) => (
-                        "3",
-                        Style::default().fg(Color::LightRed).bg(Color::DarkGray),
-                    ),
-                    Cell::Open(4) => (
-                        "4",
-                        Style::default().fg(Color::LightBlue).bg(Color::DarkGray),
-                    ),
-                    Cell::Open(5) => ("5", Style::default().fg(Color::Yellow).bg(Color::DarkGray)),
-                    Cell::Open(6) => (
-                        "6",
-                        Style::default().fg(Color::LightMagenta).bg(Color::DarkGray),
-                    ),
-                    Cell::Open(7) => (
-                        "7",
-                        Style::default().fg(Color::LightCyan).bg(Color::DarkGray),
-                    ),
-                    Cell::Open(8) => ("8", Style::default().fg(Color::Gray).bg(Color::DarkGray)),
+            for (x, cell) in row.iter().enumerate() {
+                let (closed_color, opened_color) = if x == self.cursor.x && y == self.cursor.y {
+                    (CLOSED_BG_CURSOR, OPENED_BG_CURSOR)
+                } else if x >= self.cursor.x.saturating_sub(1)
+                    && x <= self.cursor.x + 1
+                    && y >= self.cursor.y.saturating_sub(1)
+                    && y <= self.cursor.y + 1
+                {
+                    (CLOSED_BG_NEIGHBOR, OPENED_BG_NEIGHBOR)
+                } else {
+                    (CLOSED_BG, OPENED_BG)
+                };
+                let (text, mut style) = match cell {
+                    Cell::Hidden => (" ", Style::default()),
+                    Cell::Flag => ("►", Style::default().fg(Color::LightGreen)),
+                    Cell::Mine => ("*", Style::default().fg(Color::Green)),
+                    Cell::FalseFlag => ("►", Style::default().fg(Color::Red)),
+                    Cell::TrippedMine => ("*", Style::default().fg(Color::Red)),
+                    Cell::Open(0) => (" ", Style::default()),
+                    Cell::Open(1) => ("1", Style::default().fg(Color::Blue)),
+                    Cell::Open(2) => ("2", Style::default().fg(Color::LightGreen)),
+                    Cell::Open(3) => ("3", Style::default().fg(Color::LightRed)),
+                    Cell::Open(4) => ("4", Style::default().fg(Color::LightBlue)),
+                    Cell::Open(5) => ("5", Style::default().fg(Color::Cyan)),
+                    Cell::Open(6) => ("6", Style::default().fg(Color::LightMagenta)),
+                    Cell::Open(7) => ("7", Style::default().fg(Color::LightCyan)),
+                    Cell::Open(8) => ("8", Style::default().fg(Color::Magenta)),
                     _ => unreachable!(),
                 };
+                style = match cell {
+                    Cell::Hidden | Cell::Flag => style.bg(closed_color),
+                    _ => style.bg(opened_color),
+                };
+                if *cell == Cell::TrippedMine || *cell == Cell::FalseFlag {
+                    style = style.add_modifier(Modifier::RAPID_BLINK);
+                }
                 cells.push(Span::styled(text, style));
             }
             lines.push(Spans(cells));

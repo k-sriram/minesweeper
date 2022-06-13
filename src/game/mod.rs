@@ -134,11 +134,13 @@ impl Game {
                 };
                 Ok(())
             }
-            _ => panic!("Unreachable: FalseFlag and TrippedMine conditions only possible after game over"),
+            _ => panic!(
+                "Unreachable: FalseFlag and TrippedMine conditions only possible after game over"
+            ),
         }
     }
 
-    fn open_neighbors(&mut self, x:usize, y:usize) -> Result<(), &'static str>{
+    fn open_neighbors(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
         for yn in y.saturating_sub(1)..min(self.height(), y + 2) {
             for xn in x.saturating_sub(1)..min(self.width(), x + 2) {
                 if xn == x && yn == y {
@@ -221,8 +223,12 @@ impl Game {
                     for (x, cell) in row.iter_mut().enumerate() {
                         if *cell == Cell::Hidden {
                             *cell = self.rules.get_cell(x, y).into();
-                        } else if *cell == Cell::Flag && self.rules.get_cell(x, y).is_clear() {
-                            *cell = Cell::FalseFlag;
+                        } else if *cell == Cell::Flag {
+                            if self.rules.get_cell(x, y).is_clear() {
+                                *cell = Cell::FalseFlag;
+                            } else {
+                                *cell = Cell::Mine;
+                            }
                         }
                     }
                 }
