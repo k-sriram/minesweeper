@@ -93,6 +93,7 @@ impl UI for TUI {
         loop {
             self.draw(game);
             if event::poll(TICK).unwrap() {
+                self.status = String::default();
                 let event = event::read().unwrap();
                 match self.handle_event(event, game) {
                     Some(action) => return action,
@@ -100,6 +101,10 @@ impl UI for TUI {
                 }
             }
         }
+    }
+
+    fn show_msg(&mut self, msg: &str) {
+        self.status = msg.to_string();
     }
 }
 

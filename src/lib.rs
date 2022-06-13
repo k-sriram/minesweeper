@@ -6,6 +6,7 @@ pub use ui::{CLUI, TUI};
 
 pub trait UI {
     fn get_action(&mut self, game: &Game) -> Action;
+    fn show_msg(&mut self, msg: &str);
 }
 
 pub struct Engine {
@@ -25,7 +26,11 @@ impl Engine {
         loop {
             match self.ui.get_action(&self.game) {
                 Action::Quit => break,
-                action => self.game.action(action).unwrap(),
+                action => self
+                    .game
+                    .action(action)
+                    .err()
+                    .map(|err| self.ui.show_msg(err)),
             };
         }
     }

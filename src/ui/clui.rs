@@ -71,4 +71,8 @@ impl UI for CLUI {
             }
         }
     }
+
+    fn show_msg(&mut self, msg: &str) {
+        println!("{}", msg);
+    }
 }
