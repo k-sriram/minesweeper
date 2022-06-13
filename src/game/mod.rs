@@ -1,6 +1,8 @@
 mod rules;
 mod timer;
 
+use std::cmp::{max, min};
+
 pub use rules::GameState::{self, *};
 
 use rules::GameRules;
@@ -117,6 +119,9 @@ impl Game {
                             cell,
                         } => {
                             self.board[y][x] = cell.into();
+                            if cell == rules::Cell::Clear(0) {
+                                self.open_neighbors(x, y);
+                            }
                         }
                         rules::OpenInfo { state: _, cell } => {
                             if cell == rules::Cell::Mine {
@@ -129,8 +134,25 @@ impl Game {
                 };
                 Ok(())
             }
-            _ => panic!("Unreachable: false conditions only possible after game over"),
+            _ => panic!("Unreachable: FalseFlag and TrippedMine conditions only possible after game over"),
         }
+    }
+
+    fn open_neighbors(&mut self, x:usize, y:usize) -> Result<(), &'static str>{
+        for yn in y.saturating_sub(1)..min(self.height(), y + 2) {
+            for xn in x.saturating_sub(1)..min(self.width(), x + 2) {
+                if xn == x && yn == y {
+                    continue;
+                }
+                if self.board[yn][xn] == Cell::Hidden {
+                    self.open(xn, yn)?;
+                }
+                if self.board[yn][xn] == Cell::TrippedMine {
+                    return Err("Auto-tripped on mine.");
+                }
+            }
+        }
+        Ok(())
     }
 
     fn flag(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
