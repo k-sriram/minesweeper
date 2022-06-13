@@ -1,8 +1,7 @@
-use crate::{game::{
-    Action::{self, *},
-    Cell, Game,
-    GameState::{self, *},
-}, UI};
+use crate::{
+    game::{Action, Cell, Game},
+    UI,
+};
 use std::io::{self, BufRead};
 
 pub struct CLUI {}
