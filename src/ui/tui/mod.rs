@@ -379,7 +379,9 @@ impl TUI {
                     }
                     // TODO: Handle Numpad
                     Char('f') => Some(Action::Flag(self.cursor.x, self.cursor.y)),
-                    Char('g') | Char(' ') => Some(Action::Open(self.cursor.x, self.cursor.y)),
+                    Char('g') => Some(Action::Open(self.cursor.x, self.cursor.y)),
+                    Char('h') => Some(Action::Chord(self.cursor.x, self.cursor.y)),
+                    Char(' ') => Some(Action::OpenOrChord(self.cursor.x, self.cursor.y)),
                     Char('s') => {
                         self.state = State::Settings(SettingsEditor::new(game.settings()));
                         None

@@ -35,6 +35,8 @@ pub enum Action {
     Reset,
     Open(usize, usize),
     Flag(usize, usize),
+    Chord(usize, usize),
+    OpenOrChord(usize, usize),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,6 +69,8 @@ impl Game {
             Action::Open(x, y) => self.open(x, y),
             Action::Flag(x, y) => self.flag(x, y),
             Action::Quit => Err("Quit should be processed by the engine."),
+            Action::Chord(x, y) => self.chord(x, y),
+            Action::OpenOrChord(x, y) => self.open_or_chord(x, y),
         }
     }
 
@@ -91,6 +95,14 @@ impl Game {
         self.rules.clear();
         self.mines_remaining = self.mines();
         Ok(())
+    }
+
+    fn open_or_chord(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
+        if let Cell::Open(_) = self.board[y][x] {
+            self.chord(x, y)
+        } else {
+            self.open(x, y)
+        }
     }
 
     fn open(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
@@ -141,17 +153,12 @@ impl Game {
     }
 
     fn open_neighbors(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
-        for yn in y.saturating_sub(1)..min(self.height(), y + 2) {
-            for xn in x.saturating_sub(1)..min(self.width(), x + 2) {
-                if xn == x && yn == y {
-                    continue;
-                }
-                if self.board[yn][xn] == Cell::Hidden {
-                    self.open(xn, yn)?;
-                }
-                if self.board[yn][xn] == Cell::TrippedMine {
-                    return Err("Auto-tripped on mine.");
-                }
+        for (xn, yn) in self.neighbours(x, y) {
+            if self.board[yn][xn] == Cell::Hidden {
+                self.open(xn, yn)?;
+            }
+            if self.board[yn][xn] == Cell::TrippedMine {
+                return Err("Auto-tripped on mine.");
             }
         }
         Ok(())
@@ -173,6 +180,36 @@ impl Game {
                 Ok(())
             }
             _ => Err("Cell not hidden"),
+        }
+    }
+
+    fn chord(&mut self, x: usize, y: usize) -> Result<(), &'static str> {
+        if !self.valid_coord(x, y) {
+            return Err("invalid coordinate");
+        }
+        match self.board[y][x] {
+            Cell::Flag => Err("Cell is flagged"),
+            Cell::Hidden => Err("Cell is hidden"),
+            Cell::Open(mines) => {
+                if self.state() != Playing {
+                    return Err("Game is over");
+                }
+                if mines == 0 {
+                    return Err("0s get auto-chorded.");
+                }
+                let mut neighbouring_flags = 0;
+                for (x, y) in self.neighbours(x, y) {
+                    if self.board[y][x] == Cell::Flag {
+                        neighbouring_flags += 1;
+                    }
+                }
+                if neighbouring_flags == mines {
+                    self.open_neighbors(x, y)
+                } else {
+                    Err("Can't chord this cell. Incorrect number of flags.")
+                }
+            }
+            _ => Err("Game is over"),
         }
     }
 
@@ -321,6 +358,43 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             difficulty: Difficulty::Easy,
+        }
+    }
+}
+
+struct NeighboursIter {
+    neighbours: Vec<(usize, usize)>,
+    index: usize,
+}
+
+impl Game {
+    fn neighbours(&self, x: usize, y: usize) -> NeighboursIter {
+        let mut neighbours = Vec::new();
+        for yn in y.saturating_sub(1)..min(self.height(), y + 2) {
+            for xn in x.saturating_sub(1)..min(self.width(), x + 2) {
+                if xn == x && yn == y {
+                    continue;
+                }
+                neighbours.push((xn, yn));
+            }
+        }
+        NeighboursIter {
+            neighbours,
+            index: 0,
+        }
+    }
+}
+
+impl Iterator for NeighboursIter {
+    type Item = (usize, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.neighbours.len() {
+            None
+        } else {
+            let (x, y) = self.neighbours[self.index];
+            self.index += 1;
+            Some((x, y))
         }
     }
 }
