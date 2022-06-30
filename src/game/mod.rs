@@ -1,7 +1,7 @@
 mod rules;
 mod timer;
 
-use std::cmp::{max, min};
+use std::cmp::min;
 
 pub use rules::GameState::{self, *};
 
@@ -132,7 +132,7 @@ impl Game {
                         } => {
                             self.board[y][x] = cell.into();
                             if cell == rules::Cell::Clear(0) {
-                                self.open_neighbors(x, y);
+                                self.open_neighbors(x, y)?;
                             }
                         }
                         rules::OpenInfo { state: _, cell } => {
