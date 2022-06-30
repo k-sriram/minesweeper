@@ -66,8 +66,8 @@ impl GameCursor {
     }
 
     fn move_(&mut self, x: isize, y: isize) {
-        self.x = ((self.x as isize + x) % self.width as isize) as usize;
-        self.y = ((self.y as isize + y) % self.height as isize) as usize;
+        self.x = (self.x as isize + x).rem_euclid(self.width as isize) as usize;
+        self.y = (self.y as isize + y).rem_euclid(self.height as isize) as usize;
     }
 }
 
@@ -191,6 +191,24 @@ impl TUI {
     }
 
     fn draw_board<'a>(&self, game: &Game) -> Paragraph<'a> {
+        // Draw HUD
+        let mines_remaining = game.mines_remaining();
+        let timer_width = game.width() - 3;
+        let mut hudline = vec![Span::styled(
+            format!("{:0>3}", mines_remaining),
+            Style::default().fg(Color::Blue),
+        )];
+        hudline.push(Span::styled(
+            if game.state().has_ended() {
+                let time = game.time();
+                format!("{:>timer_width$.2}", time, timer_width = timer_width)
+            } else {
+                let time = game.time_as_secs();
+                format!("{:>timer_width$}", time, timer_width = timer_width)
+            },
+            Style::default().fg(Color::Red),
+        ));
+        // Draw board
         const CLOSED_BG: Color = Color::Gray;
         const OPENED_BG: Color = Color::DarkGray;
         const CLOSED_BG_NEIGHBOR: Color = Color::LightYellow;
@@ -199,6 +217,7 @@ impl TUI {
         const OPENED_BG_CURSOR: Color = Color::White;
         let board = game.board();
         let mut lines = Vec::new();
+        lines.push(Spans(hudline));
         for (y, row) in board.iter().enumerate() {
             let mut cells = Vec::new();
             for (x, cell) in row.iter().enumerate() {
@@ -240,13 +259,6 @@ impl TUI {
                 cells.push(Span::styled(text, style));
             }
             lines.push(Spans(cells));
-        }
-        if let State::Game = self.state {
-            let cursor = &self.cursor;
-            let cursor_style = &mut lines[cursor.y].0[cursor.x].style;
-            *cursor_style = (*cursor_style)
-                .clone()
-                .patch(Style::default().bg(Color::White));
         }
         Paragraph::new(Text { lines })
     }
