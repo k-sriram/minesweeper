@@ -12,6 +12,15 @@ pub enum GameState {
     Lost,
 }
 
+impl GameState {
+    pub fn has_ended(&self) -> bool {
+        match self {
+            GameState::Won | GameState::Lost => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Cell {
     Hidden,
