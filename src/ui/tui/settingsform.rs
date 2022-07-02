@@ -55,7 +55,7 @@ mod numbox {
         style: FieldStyle,
         min_bound: Option<usize>,
         max_bound: Option<usize>,
-        content_cache: RefCell<Option<Paragraph<'a>>>,
+        content_cache: RefCell<Option<Spans<'a>>>,
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,7 +98,7 @@ mod numbox {
             }
         }
 
-        pub fn render(&self) -> Paragraph<'a> {
+        pub fn render(&self) -> Spans<'a> {
             let content = self.content_cache.borrow();
             if content.is_some() {
                 content.as_ref().unwrap().clone()
@@ -127,10 +127,8 @@ mod numbox {
                 digits.push(Span::styled(digit, *style));
                 place_value *= 10;
             }
-            let lines = vec![Spans(once(label).chain(digits.into_iter().rev()).collect())];
-            let para = Paragraph::new(Text { lines });
-
-            *(self.content_cache.borrow_mut()) = Some(para);
+            *(self.content_cache.borrow_mut()) =
+                Some(Spans(once(label).chain(digits.into_iter().rev()).collect()));
         }
 
         fn reset_cache(&self) {
