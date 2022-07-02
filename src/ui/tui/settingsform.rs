@@ -114,17 +114,17 @@ mod numbox {
             let mut place_value = 1;
             for i in 0..self.digits {
                 let digit = ((self.value / place_value) % 10).to_string();
-                let mut style = &self.style.field;
+                let mut style = self.style.field;
                 if let Active(ActiveState {
                     old_value: _,
                     cursor,
                 }) = self.state
                 {
                     if cursor == i {
-                        style = &self.style.cursor;
+                        style = style.patch(self.style.cursor);
                     }
                 }
-                digits.push(Span::styled(digit, *style));
+                digits.push(Span::styled(digit, style));
                 place_value *= 10;
             }
             *(self.content_cache.borrow_mut()) =
